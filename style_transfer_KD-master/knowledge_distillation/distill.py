@@ -97,7 +97,7 @@ def get_val_loader(args):
         datasets.CIFAR10(root='./data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             normalize,
-        ])),
+        ]),download=True),
         batch_size=args.batch_size, shuffle=False,
         num_workers=args.workers, pin_memory=True)
 
@@ -182,12 +182,12 @@ def distillation_loss(y, labels, teacher_scores, T, alpha):
         )
 
 
-def style_distillation_loss(output_teacher, output_student):
+def style_distillation_loss(output_teacher1, output_teacher2, output_teacher3, output_student1, output_student2, output_student3):
     mse_loss = torch.nn.MSELoss()
-    loss_style1 = mse_loss(output_teacher, output_student)/float(10**5)
-   # loss_style2 = mse_loss(output_teacher.relu_2, output_student.relu_2)
-   # loss_style3 = mse_loss(output_teacher.relu_3, output_student.relu_3)          
-    return loss_style1
+    loss_style1 = mse_loss(output_teacher1, output_student1)/float(10**5)
+    loss_style2 = mse_loss(output_teacher2, output_student2)/float(10**5)
+    loss_style3 = mse_loss(output_teacher3, output_student3)/float(10**5)        
+    return 0*loss_style1 + 0*loss_style2 + loss_style3
     #return torch.norm(output_teacher - output_student) / float(10**5)
     #mse_loss = torch.nn.MSELoss()
     #return mse_loss(output_teacher, output_student) / float(10**6)
@@ -295,12 +295,17 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
         # compute big model output
         with torch.no_grad():
-            teacher_output = big_model(input_var).relu_3.data.cpu().numpy()
-            teacher_output = torch.cuda.FloatTensor(teacher_output)
+            teacher_output1 = big_model(input_var).relu_1.data.cpu().numpy()
+            teacher_output1 = torch.cuda.FloatTensor(teacher_output1)
+            teacher_output2 = big_model(input_var).relu_2.data.cpu().numpy()
+            teacher_output2 = torch.cuda.FloatTensor(teacher_output2)
+            teacher_output3 = big_model(input_var).relu_3.data.cpu().numpy()
+            teacher_output3 = torch.cuda.FloatTensor(teacher_output3)
 
         # compute output
-        output = small_model(input_var).relu_3
-
+        output1 = small_model(input_var).relu_1
+        output2 = small_model(input_var).relu_2
+        output3 = small_model(input_var).relu_3
 
 
 	    # convert original target to one-hot representation
@@ -309,7 +314,10 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
         #target_onehot.scatter_(1, target_var.view(-1, 1), 1)
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
-        loss = criterion(teacher_output, output)
+        loss = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)
+        loss1 = 1*mse_loss(output_teacher1, output_student1)/float(10**5)
+        loss2 = 0*mse_loss(output_teacher1, output_student1)/float(10**5)
+        loss3 = 0*mse_loss(output_teacher1, output_student1)/float(10**5)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -331,8 +339,9 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
                   'Loss {loss.val:.3f} ({loss.avg:.3f})'.format(
                       epoch, i, len(train_loader), batch_time=batch_time,
                       data_time=data_time, loss=losses))
+            print('loss1 = ',loss1,'loss2 = ',loss2,'loss3 = ',loss3)
 
-    return loss.avg
+    return losses.avg
 
 
 def validate(val_loader, model, criterion):
