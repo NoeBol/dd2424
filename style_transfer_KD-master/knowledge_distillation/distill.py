@@ -315,9 +315,10 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
         loss = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)
-        loss1 = 1*mse_loss(output_teacher1, output_student1)/float(10**5)
-        loss2 = 0*mse_loss(output_teacher1, output_student1)/float(10**5)
-        loss3 = 0*mse_loss(output_teacher1, output_student1)/float(10**5)
+	mse_loss = torch.nn.MSELoss()       
+	loss1 = 1*mse_loss(teacher_output1, output1)/float(10**5)
+        loss2 = 0*mse_loss(teacher_output2, output2)/float(10**5)
+        loss3 = 0*mse_loss(teacher_output3, output3)/float(10**5)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()

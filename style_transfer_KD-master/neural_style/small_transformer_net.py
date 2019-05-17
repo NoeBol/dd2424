@@ -7,17 +7,17 @@ class SmallTransformerNet(torch.nn.Module):
     def __init__(self):
         super(SmallTransformerNet, self).__init__()
         # Initial convolution layers
-        self.conv1 = ConvLayer(3, 32, kernel_size=9, stride=1)
-        self.in1 = torch.nn.InstanceNorm2d(32, affine=True)
-        self.conv2 = ConvLayer(32, 64, kernel_size=3, stride=2)
-        self.in2 = torch.nn.InstanceNorm2d(64, affine=True)
+        self.conv1 = ConvLayer(3, 64, kernel_size=9, stride=2)
+        self.in1 = torch.nn.InstanceNorm2d(64, affine=True)
+        self.conv2 = ConvLayer(64, 128, kernel_size=3, stride=2)
+        self.in2 = torch.nn.InstanceNorm2d(128, affine=True)
         # Residual layers
-        self.res1 = ResidualBlock(64)
-        self.res2 = ResidualBlock(64)
+        self.res1 = ResidualBlock(128)
+        self.res2 = ResidualBlock(128)
         # Upsampling Layers
-        self.deconv1 = UpsampleConvLayer(64, 32, kernel_size=3, stride=1, upsample=2)
-        self.in3 = torch.nn.InstanceNorm2d(32, affine=True)
-        self.deconv2 = ConvLayer(32, 3, kernel_size=9, stride=1)
+        self.deconv1 = UpsampleConvLayer(128, 64, kernel_size=3, stride=1, upsample=4)
+        self.in3 = torch.nn.InstanceNorm2d(64, affine=True)
+        self.deconv2 = ConvLayer(64, 3, kernel_size=9, stride=1)
         # Non-linearities
         self.relu = torch.nn.ReLU()
 
