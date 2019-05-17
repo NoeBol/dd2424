@@ -332,7 +332,7 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
                       epoch, i, len(train_loader), batch_time=batch_time,
                       data_time=data_time, loss=losses))
 
-    return loss.avg
+    return losses.avg
 
 
 def validate(val_loader, model, criterion):
