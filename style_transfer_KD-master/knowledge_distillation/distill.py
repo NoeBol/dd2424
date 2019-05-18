@@ -262,7 +262,7 @@ def main():
         adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        loss = train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch)
+        loss = train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis)
 
         # evaluate on validation set
         #prec1 = validate(val_loader, small_model, criterion)
@@ -291,7 +291,7 @@ def main():
     print("Best loss: {}".format(best_loss))
 
 
-def train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch):
+def train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis):
     """
         Run one train epoch
     """
