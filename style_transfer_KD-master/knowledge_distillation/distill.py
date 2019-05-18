@@ -16,6 +16,7 @@ from neural_style.transformer_net import TransformerNet
 from neural_style.small_transformer_net import SmallTransformerNet
 import vgg
 from vgg_bis import Vgg16
+import utils
 import slim
 
 
@@ -209,7 +210,8 @@ MAIN
 def main():
     global args, best_prec1, best_loss
     args = parser.parse_args()
-    
+
+    device = "cuda"
     vgg_bis = Vgg16(requires_grad=False).to(device)
     style_transform = transforms.Compose([
         transforms.ToTensor(),
@@ -351,7 +353,7 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
         loss_norm = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)     
-	    loss1 = mse_loss(teacher_output1, output1)/float(10**0)
+	loss1 = mse_loss(teacher_output1, output1)/float(10**0)
         loss2 = mse_loss(teacher_output2, output2)/float(10**1)
         loss3 = mse_loss(teacher_output3, output3)/float(10**5)
         
@@ -364,9 +366,9 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
         output3 = output3.float()
         loss = loss.float()
-	    loss1 = loss1.float()
-	    loss2 = loss2.float()
-	    loss3 = loss3.float()
+	loss1 = loss1.float()
+	loss2 = loss2.float()
+	loss3 = loss3.float()
         losses.update(loss.data.item(), input.size(0))
 
         # measure elapsed time
@@ -386,7 +388,7 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 	#	  'loss3 {loss3.item()} ({loss3.item()})'.format(
 	#	      loss1=loss1,loss2=loss2,loss3=loss3))
 	    print('loss1 = ',loss1.item(),'loss2 = ',loss2.item(),'loss3 = ',loss3.item())
-        print('content_loss = ', content_loss.item(), 'style_loss = ',style_loss.item())
+            print('content_loss = ', content_loss.item(), 'style_loss = ',style_loss.item())
     return losses.avg
 
 
