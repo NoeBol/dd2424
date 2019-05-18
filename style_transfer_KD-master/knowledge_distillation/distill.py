@@ -15,6 +15,7 @@ import torchvision.datasets as datasets
 from neural_style.transformer_net import TransformerNet
 from neural_style.small_transformer_net import SmallTransformerNet
 import vgg
+from vgg_bis import Vgg16
 import slim
 
 
@@ -63,6 +64,14 @@ parser.add_argument('--coco', action='store_true',
                     help='use coco dataset ')
 parser.add_argument('--coco-dataset', type=str,
                     help='path to coco dataset ')
+parser.add_argument("--style-image", type=str, default="images/style-images/mosaic.jpg",
+                    help="path to style-image")
+parser.add_argument("--style-size", type=int, default=None,
+                    help="size of style-image, default is the original size of style image")
+parser.add_argument("--content-weight", type=float, default=1e5,
+                    help="weight for content-loss, default is 1e5")
+parser.add_argument("--style-weight", type=float, default=1e10,
+                    help="weight for style-loss, default is 1e10")
 
 best_prec1 = 0
 best_loss = 0
@@ -200,6 +209,19 @@ MAIN
 def main():
     global args, best_prec1, best_loss
     args = parser.parse_args()
+    
+    vgg_bis = Vgg16(requires_grad=False).to(device)
+    style_transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Lambda(lambda x: x.mul(255))
+    ])
+    
+    style = utils.load_image(args.style_image, size=args.style_size)
+    style = style_transform(style)
+    style = style.repeat(args.batch_size, 1, 1, 1).to(device)
+    
+    features_style = vgg(utils.normalize_batch(style))
+    gram_style = [utils.gram_matrix(y) for y in features_style]
 
     big_model = get_style_network(args)
 
@@ -312,13 +334,28 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
         #target_onehot = torch.cuda.FloatTensor(*output.size())
         #target_onehot.zero_()
         #target_onehot.scatter_(1, target_var.view(-1, 1), 1)
+        mse_loss = torch.nn.MSELoss()  
+        y = utils.normalize_batch(output3)
+        x = utils.normalize_batch(input_var)
+        
+        features_y = vgg_bis(y)
+        features_x = vgg_bis(x)
+
+        content_loss = args.content_weight * mse_loss(features_y.relu2_2, features_x.relu2_2)
+
+        style_loss = 0.
+        for ft_y, gm_s in zip(features_y, gram_style):
+            gm_y = utils.gram_matrix(ft_y)
+            style_loss += mse_loss(gm_y, gm_s[:n_batch, :, :])
+        style_loss *= args.style_weight
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
-        loss = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)
-	mse_loss = torch.nn.MSELoss()       
-	loss1 = mse_loss(teacher_output1, output1)/float(10**0)
+        loss_norm = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)     
+	    loss1 = mse_loss(teacher_output1, output1)/float(10**0)
         loss2 = mse_loss(teacher_output2, output2)/float(10**1)
         loss3 = mse_loss(teacher_output3, output3)/float(10**5)
+        
+        loss = loss_norm + content_loss + style_loss
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -327,9 +364,9 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
         output3 = output3.float()
         loss = loss.float()
-	loss1 = loss1.float()
-	loss2 = loss2.float()
-	loss3 = loss3.float()
+	    loss1 = loss1.float()
+	    loss2 = loss2.float()
+	    loss3 = loss3.float()
         losses.update(loss.data.item(), input.size(0))
 
         # measure elapsed time
@@ -349,6 +386,7 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 	#	  'loss3 {loss3.item()} ({loss3.item()})'.format(
 	#	      loss1=loss1,loss2=loss2,loss3=loss3))
 	    print('loss1 = ',loss1.item(),'loss2 = ',loss2.item(),'loss3 = ',loss3.item())
+        print('content_loss = ', content_loss.item(), 'style_loss = ',style_loss.item())
     return losses.avg
 
 
