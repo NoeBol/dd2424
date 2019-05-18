@@ -154,9 +154,9 @@ def stylize(args):
             style_model.to(device)
             if args.export_onnx:
                 assert args.export_onnx.endswith(".onnx"), "Export model file should end with .onnx"
-                output = torch.onnx._export(style_model, content_image, args.export_onnx).cpu()
+                output = torch.onnx._export(style_model.relu_3, content_image, args.export_onnx).cpu()
             else:
-                output = style_model(content_image).cpu()
+                output = style_model(content_image).relu_3.cpu()
     utils.save_image(args.output_image, output[0])
 
 

@@ -184,10 +184,10 @@ def distillation_loss(y, labels, teacher_scores, T, alpha):
 
 def style_distillation_loss(output_teacher1, output_teacher2, output_teacher3, output_student1, output_student2, output_student3):
     mse_loss = torch.nn.MSELoss()
-    loss_style1 = mse_loss(output_teacher1, output_student1)/float(10**5)
-    loss_style2 = mse_loss(output_teacher2, output_student2)/float(10**5)
+    loss_style1 = mse_loss(output_teacher1, output_student1)/float(10**0)
+    loss_style2 = mse_loss(output_teacher2, output_student2)/float(10**1)
     loss_style3 = mse_loss(output_teacher3, output_student3)/float(10**5)        
-    return 0*loss_style1 + 0*loss_style2 + loss_style3
+    return loss_style1 + loss_style2 + loss_style3
     #return torch.norm(output_teacher - output_student) / float(10**5)
     #mse_loss = torch.nn.MSELoss()
     #return mse_loss(output_teacher, output_student) / float(10**6)
@@ -316,17 +316,20 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
         loss = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)
 	mse_loss = torch.nn.MSELoss()       
-	loss1 = 1*mse_loss(teacher_output1, output1)/float(10**5)
-        loss2 = 0*mse_loss(teacher_output2, output2)/float(10**5)
-        loss3 = 0*mse_loss(teacher_output3, output3)/float(10**5)
+	loss1 = mse_loss(teacher_output1, output1)/float(10**0)
+        loss2 = mse_loss(teacher_output2, output2)/float(10**1)
+        loss3 = mse_loss(teacher_output3, output3)/float(10**5)
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        output = output.float()
+        output3 = output3.float()
         loss = loss.float()
+	loss1 = loss1.float()
+	loss2 = loss2.float()
+	loss3 = loss3.float()
         losses.update(loss.data.item(), input.size(0))
 
         # measure elapsed time
@@ -340,8 +343,12 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
                   'Loss {loss.val:.3f} ({loss.avg:.3f})'.format(
                       epoch, i, len(train_loader), batch_time=batch_time,
                       data_time=data_time, loss=losses))
-            print('loss1 = ',loss1,'loss2 = ',loss2,'loss3 = ',loss3)
-
+	#    print('loss1 = ',loss1,'loss2 = ',loss2,'loss3 = ',loss3)
+	#    print('loss1 {loss1.item()} ({loss1.item()})\t'
+	#	  'loss2 {loss2.item()} ({loss2.item()})\t'
+	#	  'loss3 {loss3.item()} ({loss3.item()})'.format(
+	#	      loss1=loss1,loss2=loss2,loss3=loss3))
+	    print('loss1 = ',loss1.item(),'loss2 = ',loss2.item(),'loss3 = ',loss3.item())
     return losses.avg
 
 
