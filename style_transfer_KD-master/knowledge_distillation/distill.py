@@ -197,7 +197,7 @@ def style_distillation_loss(output_teacher1, output_teacher2, output_teacher3, o
     loss_style1 = mse_loss(output_teacher1, output_student1)/float(10**0)
     loss_style2 = mse_loss(output_teacher2, output_student2)/float(10**1)
     loss_style3 = mse_loss(output_teacher3, output_student3)/float(10**5)        
-    return loss_style1 + loss_style2 + loss_style3
+    return 0*loss_style1 + 0*loss_style2 + loss_style3
     #return torch.norm(output_teacher - output_student) / float(10**5)
     #mse_loss = torch.nn.MSELoss()
     #return mse_loss(output_teacher, output_student) / float(10**6)
@@ -222,7 +222,7 @@ def main():
     style = style_transform(style)
     style = style.repeat(args.batch_size, 1, 1, 1).to(device)
     
-    features_style = vgg(utils.normalize_batch(style))
+    features_style = vgg_bis(utils.normalize_batch(style))
     gram_style = [utils.gram_matrix(y) for y in features_style]
 
     big_model = get_style_network(args)
@@ -264,7 +264,7 @@ def main():
         adjust_learning_rate(optimizer, epoch)
 
         # train for one epoch
-        loss = train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis)
+        loss = train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis, gram_style)
 
         # evaluate on validation set
         #prec1 = validate(val_loader, small_model, criterion)
@@ -293,7 +293,7 @@ def main():
     print("Best loss: {}".format(best_loss))
 
 
-def train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis):
+def train_distill(train_loader, big_model, small_model, criterion, optimizer, epoch, vgg_bis, gram_style):
     """
         Run one train epoch
     """
@@ -307,7 +307,8 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 
     end = time.time()
     for i, (input, target) in enumerate(train_loader):
-
+	
+	n_batch = len(input)
         # measure data loading time
         data_time.update(time.time() - end)
 
@@ -344,12 +345,15 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
         features_x = vgg_bis(x)
 
         content_loss = args.content_weight * mse_loss(features_y.relu2_2, features_x.relu2_2)
+	content_loss /=(1.0*float(10**5)) 
 
         style_loss = 0.
         for ft_y, gm_s in zip(features_y, gram_style):
             gm_y = utils.gram_matrix(ft_y)
-            style_loss += mse_loss(gm_y, gm_s[:n_batch, :, :])
+	    # print('gm_y = ',gm_y)
+            style_loss += mse_loss(gm_y, gm_s[:n_batch, :, :]) #style_loss += mse_loss(gm_y, gm_s[:n_batch, :, :])
         style_loss *= args.style_weight
+	style_loss /= (3.0*float(10**8))
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
         loss_norm = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)     
@@ -357,14 +361,14 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
         loss2 = mse_loss(teacher_output2, output2)/float(10**1)
         loss3 = mse_loss(teacher_output3, output3)/float(10**5)
         
-        loss = loss_norm + content_loss + style_loss
-
+        loss = loss_norm +0*content_loss +0*style_loss
+	# loss /= float(10**3)
         # compute gradient and do SGD step
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        output3 = output3.float()
+        # output3 = output3.float()
         loss = loss.float()
 	loss1 = loss1.float()
 	loss2 = loss2.float()
