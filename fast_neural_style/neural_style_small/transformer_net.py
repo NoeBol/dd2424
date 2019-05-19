@@ -14,7 +14,7 @@ class TransformerNet(torch.nn.Module):
         # Residual layers
         self.res1 = ResidualBlock(64) # 128
         self.res2 = ResidualBlock(64) # 128
-        self.res3 = ResidualBlock(64) # 128
+        #self.res3 = ResidualBlock(64) # 128
         #self.res4 = ResidualBlock(128)
         #self.res5 = ResidualBlock(128)
         # Upsampling Layers
@@ -32,7 +32,7 @@ class TransformerNet(torch.nn.Module):
        # y = self.relu(self.in3(self.conv3(y)))
         y = self.res1(y)
         y = self.res2(y)
-        y = self.res3(y)
+       # y = self.res3(y)
        # y = self.res4(y)
        # y = self.res5(y)
        # y = self.relu(self.in4(self.deconv1(y)))

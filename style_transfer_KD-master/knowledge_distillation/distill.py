@@ -356,12 +356,12 @@ def train_distill(train_loader, big_model, small_model, criterion, optimizer, ep
 	style_loss /= (3.0*float(10**8))
 
         #loss = criterion(output, target_var, teacher_output, T=20.0, alpha=0.7)
-        loss_norm = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)     
+        loss = criterion(teacher_output1, teacher_output2, teacher_output3, output1, output2, output3)     
 	loss1 = mse_loss(teacher_output1, output1)/float(10**0)
         loss2 = mse_loss(teacher_output2, output2)/float(10**1)
         loss3 = mse_loss(teacher_output3, output3)/float(10**5)
         
-        loss = loss_norm +0*content_loss +0*style_loss
+        # loss = loss_norm +0*content_loss +0*style_loss
 	# loss /= float(10**3)
         # compute gradient and do SGD step
         optimizer.zero_grad()
